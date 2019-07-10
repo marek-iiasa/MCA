@@ -1,12 +1,12 @@
 h4. Multiple-Criteria Analysis (MCA) repository
 
-This directory contains files focused on various topics relevant for the MCA, in particular on the MCMA (Multiple-CriteriaModel Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives) web-based applications developed at IIASA in collaboration with:
+This repository contains files focused on various topics relevant for the MCA, in particular on the two web-based applications, namely: MCMA (Multiple-Criteria Model Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives), developed at IIASA in collaboration with:
 * Warsaw University of Technology, Poland,
 * National Institute of Telecommunications, Warsaw, Poland,
 * Systems Research Institute of the Polish Academy of Sciences, Warsaw, Poland, and
 * East China University of Science and Technology, Shanghai, China.
 
-Applications are available for the researchers of the collaborating institutions. External users may get access to them by contacting Marek Makowski (please see the publications for his email address).
+The MCMA and MCAA applications are available for the researchers of the collaborating institutions. External users may get access to these applications by contacting Marek Makowski (please see the publications for his email address).
 
 This repository contains files for exclusive research and/or education use by scientists and students working at or collaborating with the above mentioned institutions, including participants of the IIASA YSSP (Young Scientist Summer Program). Currently the repository is composed of only one directory:
 * reading: contains recommended reading on the OR (Operations Research) topics.
@@ -18,7 +18,7 @@ h4. Reading and downloading a selected file:
 * for download click the corresponding button displayed above the top of the file.
 
 h4. Two easy ways for importing the whole repository to a local computer:
-* users of git:
+* users of git (to have advantages of pulling the repository modifications):
 ** clone the repository, e.g., by the command: _$git clone git://github.com/marek-ime/MCA.git_
-** subsequent repository updates: _$git pull_
+** subsequent repository updates: _$git pull_ (from the top-dir of the local repository)
 * any user can download the repository as the zip file using the *Download ZIP* button.
