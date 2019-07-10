@@ -1,0 +1,20 @@
+h4. Multiple-Criteria Analysis (MCA) repository
+
+This directory contains files focused on various topics relevant for the MCA. The focus is on the MCMA (Multiple-CriteriaModel Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives) web-based applications developed at IIASA in collaboration with:
+* Warsaw University of Technology, Poland,
+* National Institute of Telecommunications, Warsaw, Poland,
+* Systems Research Institute of the Polish Academy of Sciences, Warsaw, Poland, and
+* East China University of Science and Technology, Shanghai, China.
+
+Applications are available for the researchers of the collaborating institutions.External users may get access to them by contacting Marek Makowski (please see the publications for his email address).
+
+This repository contains files for exclusive use in research by scientists and students working at or collaborating with the above mentioned institutions, including participants of the IIASA YSSP (Young Scientist Summer Program). Currently the repository is composed of only one directory:
+* reading: contains recommended reading on the OR (Operations Research) topics.
+
+Each directory contains the corresponding short description of its content. More files will be added to the repository as needed.
+
+h4. Two easy ways for importing the repository to a local computer:
+* users of git:
+** clone the repository, e.g., by the command: _$git clone git://github.com/iiasa-ime/SAYSSP.git_
+** subsequent repository updates: _$git pull_
+* any user can download the repository as the zip file using the *Download ZIP* button.

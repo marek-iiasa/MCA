@@ -1,0 +1,25 @@
+h4. Recommended reading on the Multiple-Criteria Analysis (MCA)
+
+This directory contains the PDF files focused on various topics relevant for the MCA. The focus is on the MCMA (Multiple-CriteriaModel Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives) applications developed at IIASA.
+
+h5. Basic reading on mathematical modeling and integrated model analysis
+* dss_yssp.pdf: Model-based decision support methodology with environmental applications (Wierzbicki, Makowski, Wessels, 2000)
+* mm_jcp09.pdf: Management of attainable tradeoffs between conflicting goals (Makowski, 2009)
+
+
+h5. Supplementary reading
+
+The titles/content of PDFs is listed in chronological order:
+* WP-94-102.pdf: Methodology of MCA (Makowski, 1994)
+* WP-94-112.pdf: Aspiration level approach (Nakayama, 1994)
+* isaap.pdf: Interactive specification and analysis of aspiration-based preferences (Granat, Makowski, 1998)
+* aez.pdf: MCA of land resources (Fischer, Granat, Makowski, 1998)
+* eolss_mcma.pdf: Multi-objective decision support including sensitivity analysis (Makowski, 2001)
+* dss_soft.pdf: Model-based decision support and soft computations (Makowski, Wierzbicki, 2003)
+* ejor04.pdf: A structured modeling technology (Makowski, 2004)
+* IR-07-025.pdf: Discrete decision problems with large number of criteria (Wierzbicki, Granat, Makowski, 2007)
+* nakayama09.pdf: two pages from Nakayama's (2009) book with an example supporting the recommendation for avoiding using weighted-sum aggregation of criteria
+* IR-09-022.pdf: User guide to MCA (Makowski, Granat, Ren, 2009)
+* IR-09-023.pdf: Multiple-criteria analysis of discrete alternatives (Granat, Makowski, Ogryczak, 2009)
+* IR-09-024.pdf: Overview of methods implemented in MCA (Makowski, Granat, Ogryczak, 2009)
+
