@@ -23,3 +23,16 @@ The titles/content of PDFs is listed in chronological order:
 * IR-09-023.pdf: Multiple-criteria analysis of discrete alternatives (Granat, Makowski, Ogryczak, 2009)
 * IR-09-024.pdf: Overview of methods implemented in MCA (Makowski, Granat, Ogryczak, 2009)
 
+
+h5. Recent publications on MCA applications to diverse energy models
+
+Please consult the repository of publications co-authored by Marek Makowski at https://www.iiasa.ac.at/web/home/research/researchPrograms/Energy/Marek-Makowski.en.html , in particular for the following papers since 2012, listed in chronological order:
+* (2012) The IIASA Energy-Multi Criteria Analysis Tool (ENE-MCA)
+* (2012) Climate policies can help resolve energy security and air pollution challenge
+* (2013) Value measurement analysis of energy tradeoffs in South Africa
+* (2013) Climate policies can help resolve energy security and air pollution challenges
+* (2015). Multi-criteria analysis of nuclear power in the global energy system: Assessing trade-offs between simultaneously attainable economic, environmental and social goals
+* (2015) Robustness testing of model based multiple criteria decisions: fundamentals and applications
+* (2018) A multi-criteria model analysis framework for assessing integrated water-energy system transformation pathways
+
+
