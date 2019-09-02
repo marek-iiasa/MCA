@@ -7,7 +7,7 @@ h5. Basics of mathematical modeling and integrated model analysis focused on the
 * mm_jcp09.pdf: Management of attainable tradeoffs between conflicting goals (Makowski, 2009)
 
 
-h5. Selected reading on the MCA
+h5. Selected publications on the MCA
 
 The titles/content of PDFs is listed in chronological order:
 * WP-94-102.pdf: Methodology of MCA (Makowski, 1994)
