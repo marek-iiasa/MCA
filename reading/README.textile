@@ -2,12 +2,12 @@ h4. Recommended reading on the Multiple-Criteria Analysis (MCA)
 
 This directory contains the PDF files focused on various topics relevant for the MCA. The focus is on the MCMA (Multiple-CriteriaModel Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives) applications developed at IIASA.
 
-h5. Basic reading on mathematical modeling and integrated model analysis
+h5. Basics of mathematical modeling and integrated model analysis focused on the MCA
 * dss_yssp.pdf: Model-based decision support methodology with environmental applications (Wierzbicki, Makowski, Wessels, 2000)
 * mm_jcp09.pdf: Management of attainable tradeoffs between conflicting goals (Makowski, 2009)
 
 
-h5. Supplementary reading
+h5. Selected reading on the MCA
 
 The titles/content of PDFs is listed in chronological order:
 * WP-94-102.pdf: Methodology of MCA (Makowski, 1994)
