@@ -1,6 +1,8 @@
 h4. Recommended reading on the Multiple-Criteria Analysis (MCA)
 
 This directory contains the PDF files focused on various topics relevant for the MCA. The focus is on the MCMA (Multiple-CriteriaModel Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives) applications developed at IIASA.
+Due to the copyright reasons, as well as the vast number of the MCA-related references,
+only the publications (co-)authored by the repository owner are posted.
 
 h5. Basics of mathematical modeling and integrated model analysis focused on the MCA
 * dss_yssp.pdf: Model-based decision support methodology with environmental applications (Wierzbicki, Makowski, Wessels, 2000)
@@ -31,8 +33,8 @@ Please consult the repository of publications co-authored by Marek Makowski at h
 * (2012) Climate policies can help resolve energy security and air pollution challenge
 * (2013) Value measurement analysis of energy tradeoffs in South Africa
 * (2013) Climate policies can help resolve energy security and air pollution challenges
-* (2015). Multi-criteria analysis of nuclear power in the global energy system: Assessing trade-offs between simultaneously attainable economic, environmental and social goals
+* (2015) Multi-criteria analysis of nuclear power in the global energy system: Assessing trade-offs between simultaneously attainable economic, environmental and social goals
 * (2015) Robustness testing of model based multiple criteria decisions: fundamentals and applications
 * (2018) A multi-criteria model analysis framework for assessing integrated water-energy system transformation pathways
-
+* (2019) Incorporation of life cycle emissions and carbon price uncertainty into the supply chain network management of PVC production.
 
