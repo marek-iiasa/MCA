@@ -1,7 +1,7 @@
 h4. Selected reading on the Multiple-Criteria Analysis (MCA)
 
 This directory contains the PDF files and references focused on various topics relevant for the MCA. The spotlight is on the MCMA (Multiple-CriteriaModel Analysis) and MCAA (Multiple-Criteria Analysis of Alternatives), the two complementary Web-based applications developed at IIASA, now maintained at the IIASA Energy Program.
-Due to the copyright reasons, as well as the vast number of the MCA-related references, only the publications (co-)authored by the repository owner are posted/listed.
+Due to the copyright reasons, as well as the vast number of the MCA-related references, only the publications (co-)authored by the repository owner are posted/listed. For further/alternative reading please consult the extensive bibliography available, e.g., in these publications.
 
 h5. Basics of mathematical modeling and integrated model analysis focused on the MCA
 * extensive: dss_yssp.pdf: Model-based decision support methodology with environmental applications (Wierzbicki, Makowski, Wessels, 2000)
@@ -25,7 +25,7 @@ The titles/content of PDFs is listed in chronological order:
 * IR-09-024.pdf: Overview of methods implemented in MCA (Makowski, Granat, Ogryczak, 2009)
 
 
-h5. Recent publications on MCA applications to diverse energy models
+h5. Recent publications on MCA applications to diverse energy issues
 
 Please consult the repository of publications co-authored by Marek Makowski at https://www.iiasa.ac.at/web/home/research/researchPrograms/Energy/Marek-Makowski.en.html , in particular for the following papers since 2012, listed in chronological order:
 * (2012) The IIASA Energy-Multi Criteria Analysis Tool (ENE-MCA).
