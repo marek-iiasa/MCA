@@ -4,7 +4,7 @@ This directory contains the PDF files and references focused on various topics r
 Due to the copyright reasons, as well as the vast number of the MCA-related references, only the publications (co-)authored by the repository owner are posted/listed. For further/alternative reading please consult the extensive bibliography available, e.g., in these publications.
 
 h5. Basics of mathematical modeling and integrated model analysis focused on the MCA
-* extensive: dss_yssp.pdf: Model-based decision support methodology with environmental applications (Wierzbicki, Makowski, Wessels, 2000)
+* all-embracing: dss_yssp.pdf: Model-based decision support methodology with environmental applications (Wierzbicki, Makowski, Wessels, 2000)
 * compact: mm_jcp09.pdf: Management of attainable tradeoffs between conflicting goals (Makowski, 2009)
 
 
