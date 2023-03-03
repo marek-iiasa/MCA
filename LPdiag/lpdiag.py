@@ -1,11 +1,13 @@
 """
 Prototype of simple analysis of the MPS-format file
+Written by Marek Makowski, ECE Program of IIASA, in March 2023
 """
+
 # import sys		# needed for sys.exit()
 import os
 import numpy as np
 import pandas as pd
-from datetime import datetime as dt
+# from datetime import datetime as dt
 # from datetime import timedelta as td
 # import matplotlib.pyplot as plt
 # from matplotlib import cm
@@ -16,9 +18,20 @@ from datetime import datetime as dt
 
 
 class LPdiag:
+    """Process the MPS-format input file and provide its basic diagnotics.
+
+    The diagnostics currently includes:
+    - handling formal errors of the MPS file
+    - basic statistics of the matrix coefficients.
+
+    Attributes
+    ----------
+    rep_dir : str
+        sub-directory for reports (text and plots)
+    """
     def __init__(self, rep_dir):
-        self.rep_dir = rep_dir    # subdirectory for reports
-        self.fname = 'undefined'    # MPS input file
+        self.rep_dir = rep_dir    # subdirectory for reports (text, in future also plots)
+        self.fname = 'undefined'    # MPS input file (to be defined, if/when rd_mps() is called)
         self.pname = 'undefined'    # problem name
         if not os.path.exists(self.rep_dir):
             os.makedirs(self.rep_dir, mode=0o755)
@@ -135,7 +148,8 @@ class LPdiag:
         print(f'\nDistribution of non-zeros values:\n{self.mat["abs_val"].describe()}')
         print(f'\nDistribution of log10(values):\n{self.mat["log"].describe()}')
 
-    def report(self):
+    def stat(self):
+        """Basic statistics of the matrix coefficients."""
         df1 = self.mat.loc[self.mat['log'] == -6]
         df2 = self.mat.loc[self.mat['log'] < -6]
         df3 = self.mat.loc[self.mat['log'] == -7]
@@ -150,29 +164,3 @@ class LPdiag:
         print(f'Number of small values of log10(values) == -9: {df5["log"].count()}')
         print(f'Number of small values of log10(values) == -10: {df6["log"].count()}')
         print(f'Number of large values of log10(values) > 4: {df7["log"].count()}')
-
-
-if __name__ == '__main__':
-    tstart = dt.now()
-    # print('Started at:', str(tstart))
-    wrk_dir = './'
-    os.chdir(wrk_dir)
-
-    # small MPSs, for testing the code
-    # fn_mps = 'data1/aez.mps'  # 5 matrix elems in a row - processing not implemented yet
-    # fn_mps = 'data1/diet.mps'
-    # fn_mps = 'data1/jg_korh.mps'
-    # fn_mps = 'data1/lotfi.mps'
-
-    # trouble-makers MPSs, large (over 1G) files, not posted to gitHub
-    # all large MPS files should be preferably copied to /t/fricko/for_marek/ (see the Oliver's slack post of Jan 9th)
-    fn_mps = 'data1/of_led1.mps'    # posted by Oliver in /t/fricko...
-    # fn_mps = 'data1/of_baselin.mps'   # second MPS from Oliver
-
-    repdir = 'Rep/'    # subdirectory for reports
-    lp = LPdiag(repdir)
-    lp.rd_mps(fn_mps)
-    lp.report()
-    tend = dt.now()
-    print('Started at: ', str(tstart))
-    print('Finished at:', str(tend))
