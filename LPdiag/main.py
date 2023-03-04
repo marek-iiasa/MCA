@@ -1,6 +1,7 @@
 """
 Prototype of simple analysis of the MPS-format file
 Written by Marek Makowski, ECE Program of IIASA, in March 2023
+Developed in PyCharm, with Python 3.10.4
 """
 
 from lpdiag import *    # LPdiag class for processing and analysis of LP matrices
@@ -43,7 +44,11 @@ if __name__ == '__main__':
 
     lp = LPdiag(repdir)     # LPdiag ctor
     lp.rd_mps(fn_mps)       # read MPS, store the matrix in dataFrame
-    lp.stat()               # basic statistics of the matrix coefficients
+    lp.stat(lo_tail=-7, up_tail=5)   # statistics of the matrix coefficients, incl. distribution tails
+    # lp.stat(lo_tail=0, up_tail=0)  # to get numbers of coeffs for each magnitute specify equal/overlapping tails
     tend = dt.now()
-    print('Started at: ', str(tstart))
+    print('\nStarted at: ', str(tstart))
     print('Finished at:', str(tend))
+    # TODO: plots of distributions of coeffs
+    # TODO: implement naive scaling
+    # TODO: distributions of coeff-vals in rows/cols with small/large coefficients

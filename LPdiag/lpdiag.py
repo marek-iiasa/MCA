@@ -85,6 +85,7 @@ class LPdiag:
                         self.id_rows.append(row_seq)
                         self.id_cols.append(col_seq)
                         self.vals.append(val)
+                        # TODO: process lines with two matrix elements
                         assert n_words == 3, f'matrix element (line {n_line}) has {n_words} words, cannot process it.'
                     elif n_section == 1:  # rows
                         assert n_words == 2, f'row declaration (line {n_line}) has {n_words} words instead of 2.'
@@ -97,10 +98,13 @@ class LPdiag:
                             self.gf_seq = seq_id
                             print(f'Row {words[1]} (seq_id {seq_id}) declared as the objective (goal function) row.')
                     elif n_section == 3:  # rhs
+                        # TODO: process RHS
                         pass
                     elif n_section == 4:  # ranges
+                        # TODO: process Ranges
                         pass
                     elif n_section == 5:    # bounds
+                        # TODO: process Bounds
                         pass
                     elif n_section == 6:  # end data
                         raise Exception(f'Unexpected execution flow; needs to be explored.')
@@ -145,22 +149,39 @@ class LPdiag:
         # Finish the MPS processing with the summary of its size
         print(f'\nFinished processing {self.n_lines} lines of the MPS file {self.fname}.')
         print(f'LP has: {len(self.row_names)} rows, {len(self.col_names)} cols, {len(self.mat)} non-zeros.')
+
+    def stat(self, lo_tail=-7, up_tail=6):
+        """Basic statistics of the matrix coefficients."""
+        # TODO: add optional params: definitions of small and large, improve handling
+        # TODO: supress processing values beyond their ranges
         print(f'\nDistribution of non-zeros values:\n{self.mat["abs_val"].describe()}')
         print(f'\nDistribution of log10(values):\n{self.mat["log"].describe()}')
+        min_logv = self.mat["log"].min()
+        max_logv = self.mat["log"].max()
+        print(f'log10 values: min = {min_logv}, max = {max_logv}.')
 
-    def stat(self):
-        """Basic statistics of the matrix coefficients."""
-        df1 = self.mat.loc[self.mat['log'] == -6]
-        df2 = self.mat.loc[self.mat['log'] < -6]
-        df3 = self.mat.loc[self.mat['log'] == -7]
-        df4 = self.mat.loc[self.mat['log'] == -8]
-        df5 = self.mat.loc[self.mat['log'] == -9]
-        df6 = self.mat.loc[self.mat['log'] == -10]
-        df7 = self.mat.loc[self.mat['log'] > 4]
-        print(f'\nDistribution of small values of log10(values) < -6:\n{df2["log"].describe()}')
-        print(f'\nNumber of small values of log10(values) == -6: {df1["log"].count()}')
-        print(f'Number of small values of log10(values) == -7: {df3["log"].count()}')
-        print(f'Number of small values of log10(values) == -8: {df4["log"].count()}')
-        print(f'Number of small values of log10(values) == -9: {df5["log"].count()}')
-        print(f'Number of small values of log10(values) == -10: {df6["log"].count()}')
-        print(f'Number of large values of log10(values) > 4: {df7["log"].count()}')
+        if lo_tail > up_tail:
+            print(f'Overlapping distribution tails ({lo_tail}, {up_tail}) reset to 0.')
+            lo_tail = up_tail = 0
+
+        # low-tail of the distribution
+        if lo_tail < min_logv:
+            print(f'\nNo log10(values) in the requested low-tail (<= {lo_tail}) of the ditribution.')
+        else:
+            print(f'\nDistribution of log10(values) in the requested low-tail (<= {lo_tail}) of the ditribution.')
+            print(f'{self.mat.loc[self.mat["log"] <= lo_tail].describe()}')
+            for val in [*range(min_logv, lo_tail + 1)]:
+                print(f'Number of log10(values) == {val}: {self.mat.loc[self.mat["log"] == val]["log"].count()}')
+        # up-tail of the distribution
+        if max_logv < up_tail:
+            print(f'\nNo log10(values) in the requested upper-tail (>= {up_tail}) of the ditribution.')
+        else:
+            print(f'\nDistribution of log10(values) in the requested upp-tail (>= {up_tail}) of the ditribution.')
+            print(f'{self.mat.loc[self.mat["log"] >= up_tail].describe()}')
+            for val in [*range(up_tail, max_logv + 1)]:
+                print(f'Number of log10(values) == {val}: {self.mat.loc[self.mat["log"] == val]["log"].count()}')
+        # df7 = self.mat.loc[self.mat['log'] > 4]
+        # print(f'Number of large values of log10(values) > 4: {df7["log"].count()}')
+
+    def plot_hist(self):
+        """Plot histograms."""
