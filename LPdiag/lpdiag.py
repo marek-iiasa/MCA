@@ -151,9 +151,19 @@ class LPdiag:
         print(f'LP has: {len(self.row_names)} rows, {len(self.col_names)} cols, {len(self.mat)} non-zeros.')
 
     def stat(self, lo_tail=-7, up_tail=6):
-        """Basic statistics of the matrix coefficients."""
-        # TODO: add optional params: definitions of small and large, improve handling
-        # TODO: supress processing values beyond their ranges
+        """Basic statistics of the matrix coefficients.
+
+        Focus on distributions of magnitudes of non-zero coeff. represented by values of int(log10(abs(coeff))).
+        Additionally, tails (low and upp) of the distributions are reported.
+
+        Attributes
+        ----------
+        lo_tail: int
+            Magnitude order of the low-tail (-7 denotes values < 10^(-6))
+        up_tail: int
+            Magnitude order of the upper-tail (6 denotes values >= 10^6)
+        """
+
         print(f'\nDistribution of non-zeros values:\n{self.mat["abs_val"].describe()}')
         print(f'\nDistribution of log10(values):\n{self.mat["log"].describe()}')
         min_logv = self.mat["log"].min()
@@ -180,8 +190,39 @@ class LPdiag:
             print(f'{self.mat.loc[self.mat["log"] >= up_tail].describe()}')
             for val in [*range(up_tail, max_logv + 1)]:
                 print(f'Number of log10(values) == {val}: {self.mat.loc[self.mat["log"] == val]["log"].count()}')
-        # df7 = self.mat.loc[self.mat['log'] > 4]
-        # print(f'Number of large values of log10(values) > 4: {df7["log"].count()}')
+
+    def out_loc(self, small=True, thresh=-7):
+        """Locations of elements having small/large coeff values.
+
+        Locations of outlayers (in the term of the matrix coefficient values).
+        The provided ranges of values in the corresponding row/col indicate potential of the simple scaling.
+
+        Attributes
+        ----------
+        small: bool
+            True/False for threshold of either small or large coefficients.
+        thresh: int
+            Magnitude of the threshold (in: int(log10(abs(coeff))), i.e. -7 denotes values < 10^(-6))
+        """
+
+        assert small, f'Locations of large values not implemented yet.'
+        df = self.mat.loc[self.mat['log'] <= thresh]
+        print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) <= {thresh}).')
+        df1 = df.sort_values('row')
+        df1.reset_index()
+        for index, row in df1.iterrows():
+            row_seq = int(row['row'])
+            col_seq = int(row['col'])
+            names = [k for k, id in self.row_names.items() if id == row_seq]
+            assert len(names) == 1, f'List of row_names for id {row_seq} has {len(names)} elements.'
+            row_name = names[0]
+            names = [k for k, id in self.col_names.items() if id == col_seq]
+            assert len(names) == 1, f'List of row_names for id {row_seq} has {len(names)} elements.'
+            col_name = names[0]
+            print(f'row_seq {row_seq}, col_seq {col_seq}, val {row["val"]}, log {row["log"]}')
+            print(f'({row_name}, {col_name})')
+            df_row = df1.loc[df1['row'] == row_seq]  # df with elements in the same row
+            print(f'matrix elements in the same row:\n{df_row}')
 
     def plot_hist(self):
         """Plot histograms."""

@@ -46,6 +46,7 @@ if __name__ == '__main__':
     lp.rd_mps(fn_mps)       # read MPS, store the matrix in dataFrame
     lp.stat(lo_tail=-7, up_tail=5)   # statistics of the matrix coefficients, incl. distribution tails
     # lp.stat(lo_tail=0, up_tail=0)  # to get numbers of coeffs for each magnitute specify equal/overlapping tails
+    lp.out_loc(small=True, thresh=-7)  # locations of outlayers
     tend = dt.now()
     print('\nStarted at: ', str(tstart))
     print('Finished at:', str(tend))
