@@ -49,9 +49,10 @@ class LPdiag:
         self.vals = []          # values of the matrix
 
     def rd_mps(self, fname):   # process the MPS file
+        print(f'\nReading MPS-format file {fname}.')
         self.fname = fname
         sections = ['NAME', 'ROWS', 'COLUMNS', 'RHS', 'RANGES', 'BOUNDS', 'ENDATA']
-        req_sect = [True, True, True, False, False, False, True]
+        req_sect = [True, True, True, False, False, False, True]    # required/optional MPS sections
         row_typ = ['N', 'E', 'G', 'L']  # types of rows
         n_section = 0   # seq_no of the currently processed MPS-file section
         next_sect = 0   # seq_no of the next (to be processed) MPS-file section
@@ -128,7 +129,7 @@ class LPdiag:
                             raise Exception(f'Required MPS section {sections[n_section]} undefined or misplaced.')
                     else:   # optional section expected
                         if line == sections[next_sect]:     # found
-                            print(f'Values of section {sections[next_sect]} not stored yet.')
+                            print(f'Warning: values of section {sections[next_sect]} not stored yet.')
                             n_section = next_sect
                             next_sect = n_section + 1
                         else:       # expected section not found; process the section found
@@ -137,6 +138,7 @@ class LPdiag:
                             except ValueError:
                                 raise Exception(f'Unknown section id :{line} (line number = {n_line}).')
                             next_sect = n_section + 1
+                            print(f'Warning: values of section {sections[n_section]} not stored yet.')
                         continue
 
         # check, if there was at least one N row (the first N row assumed to be the objective)
@@ -150,6 +152,7 @@ class LPdiag:
         # Finish the MPS processing with the summary of its size
         print(f'\nFinished processing {self.n_lines} lines of the MPS file {self.fname}.')
         print(f'LP has: {len(self.row_names)} rows, {len(self.col_names)} cols, {len(self.mat)} non-zeros.')
+        # TODO: add a summary of the GF row
 
     def stat(self, lo_tail=-7, up_tail=6):
         """Basic statistics of the matrix coefficients.
@@ -192,8 +195,8 @@ class LPdiag:
             for val in [*range(up_tail, max_logv + 1)]:
                 print(f'Number of log10(values) == {val}: {self.mat.loc[self.mat["log"] == val]["log"].count()}')
 
-    def out_loc(self, small=True, thresh=-7):
-        """Locations of elements having small/large coeff values.
+    def out_loc(self, small=True, thresh=-7, max_rec=500):
+        """Locations of outlayers, i.e., elements having small/large coeff values.
 
         Locations of outlayers (in the term of the matrix coefficient values).
         The provided ranges of values in the corresponding row/col indicate potential of the simple scaling.
@@ -204,15 +207,20 @@ class LPdiag:
             True/False for threshold of either small or large coefficients.
         thresh: int
             Magnitude of the threshold (in: int(log10(abs(coeff))), i.e. -7 denotes values < 10^(-6))
+        max_rec: int
+            Maximum number of processed coefficients
         """
 
-        # TODO: handling of large-value outlayers
-        assert small, f'Locations of large values not implemented yet.'
-        df = self.mat.loc[self.mat['log'] <= thresh]
-        print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) <= {thresh}).')
+        if small:
+            df = self.mat.loc[self.mat['log'] <= thresh]
+            print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) <= {thresh}).')
+        else:
+            df = self.mat.loc[self.mat['log'] >= thresh]
+            print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) >= {thresh}).')
         df1 = df.sort_values('row')
         df1.reset_index()
-        for index, row in df1.iterrows():
+        for n_rows, (indx, row) in enumerate(df1.iterrows()):
+            assert n_rows < max_rec, f'To process all requested coeffs modify the safety limit assertion.'
             row_seq, row_name = self.ent_inf(row, True)     # row seq_id and name of the current coeff.
             col_seq, col_name = self.ent_inf(row, False)    # col seq_id and name of the current coeff.
             print(f'Coeff. ({row_seq}, {col_seq}): val = {row["val"]:.4e}, log(val) = {row["log"]:n}')
