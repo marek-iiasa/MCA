@@ -4,6 +4,7 @@ Written by Marek Makowski, ECE Program of IIASA, in March 2023
 """
 
 # import sys		# needed for sys.exit()
+import typing
 import os
 import numpy as np
 import pandas as pd
@@ -205,24 +206,48 @@ class LPdiag:
             Magnitude of the threshold (in: int(log10(abs(coeff))), i.e. -7 denotes values < 10^(-6))
         """
 
+        # TODO: handling of large-value outlayers
         assert small, f'Locations of large values not implemented yet.'
         df = self.mat.loc[self.mat['log'] <= thresh]
         print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) <= {thresh}).')
         df1 = df.sort_values('row')
         df1.reset_index()
         for index, row in df1.iterrows():
-            row_seq = int(row['row'])
-            col_seq = int(row['col'])
-            names = [k for k, id in self.row_names.items() if id == row_seq]
-            assert len(names) == 1, f'List of row_names for id {row_seq} has {len(names)} elements.'
-            row_name = names[0]
-            names = [k for k, id in self.col_names.items() if id == col_seq]
-            assert len(names) == 1, f'List of row_names for id {row_seq} has {len(names)} elements.'
-            col_name = names[0]
-            print(f'row_seq {row_seq}, col_seq {col_seq}, val {row["val"]}, log {row["log"]}')
-            print(f'({row_name}, {col_name})')
+            row_seq, row_name = self.ent_inf(row, True)     # row seq_id and name of the current coeff.
+            col_seq, col_name = self.ent_inf(row, False)    # col seq_id and name of the current coeff.
+            print(f'Coeff. ({row_seq}, {col_seq}): val = {row["val"]:.4e}, log(val) = {row["log"]:n}')
             df_row = df1.loc[df1['row'] == row_seq]  # df with elements in the same row
-            print(f'matrix elements in the same row:\n{df_row}')
+            print(f'\tRow {row_name} has {df_row["log"].count()} coeffs of magnitudes in [{df_row["log"].min()},'
+                  f'{df_row["log"].max()}]')
+            df_col = df1.loc[df1['col'] == col_seq]  # df with elements in the same col
+            print(f'\tCol {col_name} has {df_col["log"].count()} coeffs of magnitudes in [{df_col["log"].min()},'
+                  f'{df_col["log"].max()}]')
+            # print(f'matrix elements in the same row:\n{df_row}')
+
+    def ent_inf(self, row, by_row=True) -> typing.Tuple[int, str]:
+        """Return info on the entity (either row or col) defining the selected matrix coefficient.
+
+        Each row of the dataFrame contains definition (composed of the row_seq, col_seq, value, log(value))
+        of one matrix coefficient.
+        The function returns seq_id and name of either row or col of the currently considered coeff.
+
+        Attributes
+        ----------
+        row: dataFrame row
+            row/record of the df with the data of currently processed element
+        by_row: bool
+            True/False for returning the seq_id and name of the corresponding row/col
+        """
+        if by_row:
+            ent_id = 'row'
+            ent_seq = int(row[ent_id])
+            names = [k for k, idx in self.row_names.items() if idx == ent_seq]
+        else:
+            ent_id = 'col'
+            ent_seq = int(row[ent_id])
+            names = [k for k, idx in self.col_names.items() if idx == ent_seq]
+        assert len(names) == 1, f'List of {ent_id}_names for id {ent_seq} has {len(names)} elements.'
+        return ent_seq, names[0]
 
     def plot_hist(self):
         """Plot histograms."""

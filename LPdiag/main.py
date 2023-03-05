@@ -47,9 +47,12 @@ if __name__ == '__main__':
     lp.stat(lo_tail=-7, up_tail=5)   # statistics of the matrix coefficients, incl. distribution tails
     # lp.stat(lo_tail=0, up_tail=0)  # to get numbers of coeffs for each magnitute specify equal/overlapping tails
     lp.out_loc(small=True, thresh=-7)  # locations of outlayers
+
     tend = dt.now()
+    time_diff = tend - tstart
     print('\nStarted at: ', str(tstart))
     print('Finished at:', str(tend))
+    print(f'Wall-clock execution time: {time_diff.seconds} sec.')
     # TODO: plots of distributions of coeffs
     # TODO: implement naive scaling
     # TODO: distributions of coeff-vals in rows/cols with small/large coefficients
