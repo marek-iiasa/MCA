@@ -161,7 +161,6 @@ class LPdiag:
         # Finish the MPS processing with the summary of its size
         print(f'\nFinished processing {self.n_lines} lines of the MPS file {self.fname}.')
         print(f'LP has: {len(self.row_names)} rows, {len(self.col_names)} cols, {len(self.mat)} non-zeros.')
-        # TODO: add a summary of the GF row
 
     def stat(self, lo_tail=-7, up_tail=6):
         """Basic statistics of the matrix coefficients.
@@ -177,11 +176,19 @@ class LPdiag:
             Magnitude order of the upper-tail (6 denotes values >= 10^6)
         """
 
-        print(f'\nDistribution of non-zeros values:\n{self.mat["abs_val"].describe()}')
+        # print(f'\nDistribution of non-zero values:\n{self.mat["val"].describe()}')
+        print(f'\nDistribution of abs(non-zero) values:\n{self.mat["abs_val"].describe()}')
         print(f'\nDistribution of log10(values):\n{self.mat["log"].describe()}')
         min_logv = self.mat["log"].min()
         max_logv = self.mat["log"].max()
         print(f'log10 values: min = {min_logv}, max = {max_logv}.')
+
+        # info on the GF row
+        df = self.mat.loc[self.mat['row'] == self.gf_seq]['val']   # df with values of the GF coefficients.
+        names = [k for k, idx in self.row_names.items() if idx == self.gf_seq]
+        assert len(names) == 1, f'List of row_id_names for id {self.gf_seq} has {len(names)} elements.'
+        print(f'\nThe GF (objective) row named "{names[0]}" has {len(df)} elements.')
+        print(f'Distribution of the GF (objective) values:\n{df.describe()}')
 
         if lo_tail > up_tail:
             print(f'Overlapping distribution tails ({lo_tail}, {up_tail}) reset to 0.')

@@ -31,17 +31,17 @@ if __name__ == '__main__':
     # lotfi - classical medium size; two matrix elems in a row
 
     # trouble-makers MPSs, large (over 1G) files, not posted to gitHub, locally in Data/mps dir
-    # all large MPS files should be preferably copied to /t/fricko/for_marek/ (see the Oliver's slack post of Jan 9th)
-    # of_led1    # posted by Oliver in /t/fricko... on Feb 16, 2023 at 10:39
-    # of_baselin   # second MPS from Oliver, posted on Feb 16, 2023 at 12:13
+    # all large MPS files should be preferably copied to /t/fricko/for_marek/ (see the Oliver's slack post of Feb 16th)
+    # of_led1     - posted by Oliver in /t/fricko... on Feb 16, 2023 at 10:39 as: OFR_test_led_barrier.mps
+    # of_baselin  - second MPS from Oliver, posted on Feb 16, 2023 at 12:13 as: baseline_barrier.mps
 
     data_dir = 'Data/mps_tst/'
     prob_id = 'aez'
     # prob_id = 'diet'
     # prob_id = 'lotfi'
     # data_dir = 'Data/mps/'
-    # prob_id = 'of_led1'       # posted as: OFR_test_led_barrier.mps
-    # prob_id = 'of_baselin'      # posted as: baseline_barrier.mps
+    # prob_id = 'of_led1'
+    # prob_id = 'of_baselin'
     fn_mps = data_dir + prob_id
     repdir = 'Rep_tst/'    # subdirectory for reports
 
