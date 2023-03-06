@@ -87,8 +87,17 @@ class LPdiag:
                         self.id_rows.append(row_seq)
                         self.id_cols.append(col_seq)
                         self.vals.append(val)
-                        # TODO: process lines with two matrix elements
-                        assert n_words == 3, f'matrix element (line {n_line}) has {n_words} words, cannot process it.'
+                        if n_words > 3:     # proccess second matrix element in the same MPS row
+                            assert n_words == 5, f'line {n_line}) has {n_words} words, five words needed for' \
+                                                 f'defining second element in the same MPS line.'
+                            row_name = words[3]
+                            row_seq = self.row_names.get(row_name)
+                            assert row_seq is not None, f'unknown row name {row_name} (line {n_line}).'
+                            val = float(words[4])
+                            assert type(val) == float, f'string  {words[4]} (line {n_line}) is not a number.'
+                            self.id_rows.append(row_seq)
+                            self.id_cols.append(col_seq)
+                            self.vals.append(val)
                     elif n_section == 1:  # rows
                         assert n_words == 2, f'row declaration (line {n_line}) has {n_words} words instead of 2.'
                         assert words[0] in row_typ, f'unknown row type {words[0]} (line {n_line}).'
