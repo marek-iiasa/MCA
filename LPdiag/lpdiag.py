@@ -32,31 +32,53 @@ class LPdiag:
     """
     def __init__(self, rep_dir):
         self.rep_dir = rep_dir    # subdirectory for reports (text, in future also plots)
-        self.fname = 'undefined'    # MPS input file (to be defined, if/when rd_mps() is called)
-        self.pname = 'undefined'    # problem name
+        self.fname = 'undefined'  # MPS input file (to be defined, if/when rd_mps() is called)
+        self.pname = 'undefined'  # problem name
+        self.rhs_id = ''          # id of rhs and ranges elements
+        self.bnd_id = ''          # id of bounds elements
+        self.infty = 'none'       # marker for infinity value
+        self.n_lines = 0    # number of processed lines of the MPS file
+        self.n_rhs = 0      # number of defined RHS
+        self.n_ranges = 0   # number of defined ranges
+        self.n_bounds = 0   # number of defined bounds
         if not os.path.exists(self.rep_dir):
             os.makedirs(self.rep_dir, mode=0o755)
 
-        # initialize the vars for processing
-        self.n_lines = 0        # number of processed lines
-        self.row_names = {}     # names of rows and their seq_numbers
-        self.row_types = []     # types of rows
+        # dictionaries for searchable names and its indices (searching very-long lists is prohibitively slow)
+        self.row_name = {}    # key: row-name, item: its seq_id
+        self.seq_row = {}     # key: row sequence, item: [row-name, lo_bnd, up_bond, type]
+        self.col_name = {}    # key: col-name, item: its seq_id
+        self.seq_col = {}     # key: col-sequence, item: [col-name, lo_bnd, up_bond]
         self.gf_seq = -1        # sequence_no of the goal function (objective) row: equal = -1, if undefined
-        self.col_names = {}     # names of columns and their seq_numbers
-        self.mat = pd.DataFrame(columns=['row', 'col', 'val'])   # space for the LP matrix
-        self.id_rows = []       # ids of rows
-        self.id_cols = []       # ids of cols
-        self.vals = []          # values of the matrix
+        # representation of the LP matrix
+        self.mat = pd.DataFrame(columns=['row', 'col', 'val'])   # LP matrix
+        # self.cols = pd.DataFrame(columns=['seq_id', 'name', 'lo_bnd', 'up_bnd'])   # cols attributes
+        # self.rows = pd.DataFrame(columns=['seq_id', 'name', 'type', 'lo_bnd', 'up_bnd'])   # rows attributes
 
     def rd_mps(self, fname):   # process the MPS file
         print(f'\nReading MPS-format file {fname}.')
         self.fname = fname
         sections = ['NAME', 'ROWS', 'COLUMNS', 'RHS', 'RANGES', 'BOUNDS', 'ENDATA']
         req_sect = [True, True, True, False, False, False, True]    # required/optional MPS sections
-        row_typ = ['N', 'E', 'G', 'L']  # types of rows
-        n_section = 0   # seq_no of the currently processed MPS-file section
+        row_types = ['N', 'E', 'G', 'L']  # types of rows
+
+        # tmp space for reading sections of the MPS
+        seq_row = []       # row seq_no of the matrix coef.
+        seq_col = []       # col seq_no the matrix coef.
+        vals = []          # matrix coeff.
+        # lists are OK only for small and medium problems
+        # row_names = []     # names of rows
+        # row_types = []     # types of rows
+        # col_names = []     # names of columns
+
+        # wrk vars
+        n_section = 0  # seq_no of the currently processed MPS-file section
         next_sect = 0   # seq_no of the next (to be processed) MPS-file section
         col_curr = ''   # current column (initialized to an illegal empty name)
+        id_rhs = False  # True, if rhs_id defined
+        id_bnd = False  # True, if bnd_id defined
+
+        # process the MPS file
         with open(self.fname, 'r') as reader:
             for n_line, line in enumerate(reader):
                 line = line.rstrip('\n')
@@ -65,64 +87,125 @@ class LPdiag:
                     continue
                 words = line.split()
                 n_words = len(words)
-                if line[0] == ' ':  # continue the current MPS section
-                    if n_section == 2:  # columns/matrix (first here because most frequently used
+                if line[0] == ' ':  # continue reading the current MPS section
+                    if n_section == 2:  # columns/matrix (first here because most frequently used)
                         # print(f'processing line no {n_line}, n_words {n_words}: {line}')
-                        assert n_words == 3 or n_words == 5, f'matrix element (line {n_line}) has {n_words} words.'
+                        assert n_words in [3, 5], f'matrix element (line {n_line}) has {n_words} words.'
                         col_name = words[0]
                         if col_name != col_curr:    # new column
-                            assert col_name not in self.col_names, f'duplicated column name: {col_name} (line {n_line})'
-                            col_seq = len(self.col_names)
-                            self.col_names.update({col_name: col_seq})
+                            assert col_name not in self.col_name, f'duplicated column name: {col_name} (line {n_line})'
+                            col_seq = len(self.col_name)
+                            self.col_name.update({col_name: col_seq})
+                            self.seq_col.update({col_seq: [col_name, 0., self.infty, words[0]]})
                             col_curr = col_name
                         row_name = words[1]
-                        row_seq = self.row_names.get(row_name)
+                        row_seq = self.row_name.get(row_name)
                         assert row_seq is not None, f'unknown row name {row_name} (line {n_line}).'
                         val = float(words[2])
                         assert type(val) == float, f'string  {words[2]} (line {n_line}) is not a number.'
+                        # add the matrix element to the lists of: seq_row, seq_col, val
+                        # the lists will be converted to self.mat df after all elements will be read
+                        seq_row.append(row_seq)
+                        seq_col.append(col_seq)
+                        vals.append(val)
                         # print(f' matrix element ({row_seq}, {col_seq}) = {val}')
                         # the next two lines takes far too long for large matrices; thus tmp-store in three lists
                         # df2 = pd.DataFrame({'row': row_seq, 'col': col_seq, 'val': val}, index=list(range(1)))
                         # self.mat = pd.concat([self.mat, df2], axis=0, ignore_index=True)
-                        self.id_rows.append(row_seq)
-                        self.id_cols.append(col_seq)
-                        self.vals.append(val)
                         if n_words > 3:     # proccess second matrix element in the same MPS row
                             assert n_words == 5, f'line {n_line}) has {n_words} words, five words needed for' \
                                                  f'defining second element in the same MPS line.'
                             row_name = words[3]
-                            row_seq = self.row_names.get(row_name)
+                            row_seq = self.row_name.get(row_name)
                             assert row_seq is not None, f'unknown row name {row_name} (line {n_line}).'
                             val = float(words[4])
                             assert type(val) == float, f'string  {words[4]} (line {n_line}) is not a number.'
-                            self.id_rows.append(row_seq)
-                            self.id_cols.append(col_seq)
-                            self.vals.append(val)
+                            seq_row.append(row_seq)
+                            seq_col.append(col_seq)
+                            vals.append(val)
                     elif n_section == 1:  # rows
+                        # print(line)
                         assert n_words == 2, f'row declaration (line {n_line}) has {n_words} words instead of 2.'
-                        assert words[0] in row_typ, f'unknown row type {words[0]} (line {n_line}).'
-                        assert words[1] not in self.row_names, f'duplicated row name: {words[1]} (line {n_line}).'
-                        seq_id = len(self.row_names)
-                        self.row_names.update({words[1]: seq_id})
-                        self.row_types.append(words[0])
-                        if words[0] == 'N' and self.gf_seq == -1:
-                            self.gf_seq = seq_id
-                            print(f'Row {words[1]} (seq_id {seq_id}) declared as the objective (goal function) row.')
+                        row_type = words[0]
+                        row_name = words[1]
+                        row_seq = len(self.row_name)
+                        assert row_type in row_types, f'unknown row type {row_type} (line {n_line}).'
+                        assert row_name not in self.row_name, f'duplicated row name: {row_name} (line {n_line}).'
+                        if row_type == 'N' and self.gf_seq == -1:
+                            self.gf_seq = row_seq
+                            print(f'Row {row_name} (row_seq = {row_seq}) is the objective (goal function) row.')
+                        self.row_name.update({row_name: row_seq})   # add to dict of row_names
+                        # store row_{seq, name, type} and the default [lo_bnd, upp_bnd] (to be changed in rhs/ranges)
+                        # TODO: move the below to a function, adapt for reuse in RHS/ranges processing
+                        if row_type == 'E':
+                            self.seq_row.update({row_seq: [row_name, 0., 0., row_type]})
+                        elif row_type == 'G':
+                            self.seq_row.update({row_seq: [row_name, 0., self.infty, row_type]})
+                        elif row_type == 'L':
+                            self.seq_row.update({row_seq: [row_name, self.infty, 0., row_type]})
+                        elif row_type == 'N':
+                            self.seq_row.update({row_seq: [row_name, self.infty, self.infty, row_type]})
+                        else:
+                            raise Exception(f'Unknown type {row_type} of row {row_name}.')
                     elif n_section == 3:  # rhs
+                        if self.n_rhs == 0:     # first RHS record implies RHS/ranges id (might be empty)
+                            if n_words in [3, 5]:
+                                id_rhs = True
+                                self.rhs_id = words[0]
+                                n_req_wrd = [3, 5]  # number of required words in a line (either 3 or 5)
+                                pos_name = 1    # first row-name in words[pos_name]
+                            else:
+                                id_rhs = False
+                                self.rhs_id = ''
+                                n_req_wrd = [2, 4]
+                                pos_name = 0  # forst row-name in words[pos_name]
+                        assert n_words in n_req_wrd, f'rhs line {n_line} has {n_words} words, expected {n_req_wrd}.'
+                        row_name = words[pos_name]
+                        row_seq = self.row_name.get(row_name)
+                        assert row_seq is not None, f'unknown RHS row-name {row_name} (line {n_line}).'
+                        val = float(words[pos_name + 1])
+                        assert type(val) == float, f'RHS value  {words[pos_name + 1]} (line {n_line}) is not a number.'
+                        self.n_rhs += 1
                         # TODO: process RHS
-                        pass
                     elif n_section == 4:  # ranges
+                        self.n_ranges += 1
                         # TODO: process Ranges
                         pass
                     elif n_section == 5:    # bounds
+                        self.n_bounds += 1
                         # TODO: process Bounds
                         pass
                     elif n_section == 6:  # end data
                         raise Exception(f'Unexpected execution flow; needs to be explored.')
                     else:
                         raise Exception(f'Unknown section id {n_section}.')
-                else:       # the first or a next section
-                    print(f'next section found: {line} (line {n_line}).')
+                else:    # store the content of the last-read section, then process the head of new section
+                    if n_section == 0:  # PROBLEM
+                        pass    # problem name stored with processing the section head, no more info to be stored
+                    elif n_section == 1:    # ROWS
+                        # print(f'All read-in data of section {sections[n_section]} processed while read.')
+                        # print(f'row_name:\n{self.row_name}')
+                        # print(f'seq_row:\n{self.seq_row}')
+                        pass
+                    elif n_section == 2:  # COLUMNS
+                        # create a df with the matrix coefficients
+                        self.mat = pd.DataFrame({'row': seq_row, 'col': seq_col, 'val': vals})
+                        self.mat['abs_val'] = abs(self.mat['val'])  # add column with absolute values of coeff.
+                        self.mat['log'] = np.log10(self.mat['abs_val']).astype(int)  # add col with int(log10(coeffs))
+                        # print(f'matrix after initialization:\n {self.mat}')
+                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                    elif n_section == 3:  # RHS
+                        print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
+                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                    elif n_section == 4:  # Ranges
+                        print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
+                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                    elif n_section == 5:  # Bounds
+                        print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
+                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                    else:
+                        raise Exception(f'Should not come here, n_section = {n_section}.')
+                    print(f'Next section found: {line} (line {n_line}).')
                     self.n_lines = n_line
                     if req_sect[next_sect]:     # required section must be defined in the sequence
                         assert words[0] == sections[next_sect], f'expect section {sections[next_sect]} found: {line}.'
@@ -138,7 +221,6 @@ class LPdiag:
                             raise Exception(f'Required MPS section {sections[n_section]} undefined or misplaced.')
                     else:   # optional section expected
                         if line == sections[next_sect]:     # found
-                            print(f'Warning: values of section {sections[next_sect]} not stored yet.')
                             n_section = next_sect
                             next_sect = n_section + 1
                         else:       # expected section not found; process the section found
@@ -147,20 +229,14 @@ class LPdiag:
                             except ValueError:
                                 raise Exception(f'Unknown section id :{line} (line number = {n_line}).')
                             next_sect = n_section + 1
-                            print(f'Warning: values of section {sections[n_section]} not stored yet.')
                         continue
 
         # check, if there was at least one N row (the first N row assumed to be the objective)
         assert self.gf_seq != -1, f'objective (goal function) row is undefined.'
 
-        # create a df with the matrix coefficients
-        self.mat = pd.DataFrame({'row': self.id_rows, 'col': self.id_cols, 'val': self.vals})
-        self.mat['abs_val'] = abs(self.mat['val'])      # add column with absolute values of coeff.
-        self.mat['log'] = np.log10(self.mat['abs_val']).astype(int)  # add col with int-part of the log10(coeffs)
-
         # Finish the MPS processing with the summary of its size
         print(f'\nFinished processing {self.n_lines} lines of the MPS file {self.fname}.')
-        print(f'LP has: {len(self.row_names)} rows, {len(self.col_names)} cols, {len(self.mat)} non-zeros.')
+        print(f'LP has: {len(self.row_name)} rows, {len(self.col_name)} cols, {len(self.mat)} non-zeros.')
 
     def stat(self, lo_tail=-7, up_tail=6):
         """Basic statistics of the matrix coefficients.
@@ -183,12 +259,11 @@ class LPdiag:
         max_logv = self.mat["log"].max()
         print(f'log10 values: min = {min_logv}, max = {max_logv}.')
 
-        # info on the GF row
+        # info on the GF row, RHS, ranges, bounds
         df = self.mat.loc[self.mat['row'] == self.gf_seq]['val']   # df with values of the GF coefficients.
-        names = [k for k, idx in self.row_names.items() if idx == self.gf_seq]
-        assert len(names) == 1, f'List of row_id_names for id {self.gf_seq} has {len(names)} elements.'
-        print(f'\nThe GF (objective) row named "{names[0]}" has {len(df)} elements.')
+        print(f'\nThe GF (objective) row named "{self.seq_row.get(self.gf_seq)[0]}" has {len(df)} elements.')
         print(f'Distribution of the GF (objective) values:\n{df.describe()}')
+        print(f'Numbers of defined: RHS = {self.n_rhs}, ranges = {self.n_ranges}, bounds = {self.n_bounds}.')
 
         if lo_tail > up_tail:
             print(f'Overlapping distribution tails ({lo_tail}, {up_tail}) reset to 0.')
@@ -248,7 +323,7 @@ class LPdiag:
                   f'{df_col["log"].max()}]')
             # print(f'matrix elements in the same row:\n{df_row}')
 
-    def ent_inf(self, row, by_row=True) -> typing.Tuple[int, str]:
+    def ent_inf(self, mat_row, by_row=True) -> typing.Tuple[int, str]:
         """Return info on the entity (either row or col) defining the selected matrix coefficient.
 
         Each row of the dataFrame contains definition (composed of the row_seq, col_seq, value, log(value))
@@ -257,21 +332,19 @@ class LPdiag:
 
         Attributes
         ----------
-        row: dataFrame row
-            row/record of the df with the data of currently processed element
+        mat_row: dataFrame row
+            record of the df with the data of currently processed element
         by_row: bool
             True/False for returning the seq_id and name of the corresponding row/col
         """
         if by_row:
-            ent_id = 'row'
-            ent_seq = int(row[ent_id])
-            names = [k for k, idx in self.row_names.items() if idx == ent_seq]
+            # if seq_row {} not stored, then:  names = [k for k, idx in self.row_name.items() if idx == ent_seq]
+            ent_seq = int(mat_row['row'])
+            name = self.seq_row.get(ent_seq)[0]
         else:
-            ent_id = 'col'
-            ent_seq = int(row[ent_id])
-            names = [k for k, idx in self.col_names.items() if idx == ent_seq]
-        assert len(names) == 1, f'List of {ent_id}_names for id {ent_seq} has {len(names)} elements.'
-        return ent_seq, names[0]
+            ent_seq = int(mat_row['col'])
+            name = self.seq_col.get(ent_seq)[0]
+        return ent_seq, name
 
     def plot_hist(self):
         """Plot histograms."""
