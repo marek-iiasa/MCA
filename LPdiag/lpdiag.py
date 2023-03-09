@@ -34,7 +34,8 @@ class LPdiag:
         self.rep_dir = rep_dir    # subdirectory for reports (text, in future also plots)
         self.fname = 'undefined'  # MPS input file (to be defined, if/when rd_mps() is called)
         self.pname = 'undefined'  # problem name
-        self.rhs_id = ''          # id of rhs and ranges elements
+        self.rhs_id = ''          # id of rhs elements
+        self.range_id = ''        # id of ranges elements (might differ from rhs_id)
         self.bnd_id = ''          # id of bounds elements
         self.infty = 'none'       # marker for infinity value
         self.n_lines = 0    # number of processed lines of the MPS file
@@ -58,8 +59,8 @@ class LPdiag:
     def rd_mps(self, fname):   # process the MPS file
         print(f'\nReading MPS-format file {fname}.')
         self.fname = fname
-        sections = ['NAME', 'ROWS', 'COLUMNS', 'RHS', 'RANGES', 'BOUNDS', 'ENDATA']
-        req_sect = [True, True, True, False, False, False, True]    # required/optional MPS sections
+        sections = ['NAME', 'ROWS', 'COLUMNS', 'RHS', 'RANGES', 'BOUNDS', 'SOS', 'ENDATA']
+        req_sect = [True, True, True, False, False, False, False, True]    # required/optional MPS sections
         row_types = ['N', 'E', 'G', 'L']  # types of rows
 
         # tmp space for reading sections of the MPS
@@ -76,9 +77,11 @@ class LPdiag:
         next_sect = 0   # seq_no of the next (to be processed) MPS-file section
         col_curr = ''   # current column (initialized to an illegal empty name)
         id_rhs = False  # True, if rhs_id defined
+        id_range = False  # True, if range_id defined
         id_bnd = False  # True, if bnd_id defined
 
         # process the MPS file
+        last_sect = 0
         with open(self.fname, 'r') as reader:
             for n_line, line in enumerate(reader):
                 line = line.rstrip('\n')
@@ -135,18 +138,8 @@ class LPdiag:
                             self.gf_seq = row_seq
                             print(f'Row {row_name} (row_seq = {row_seq}) is the objective (goal function) row.')
                         self.row_name.update({row_name: row_seq})   # add to dict of row_names
-                        # store row_{seq, name, type} and the default [lo_bnd, upp_bnd] (to be changed in rhs/ranges)
-                        # TODO: move the below to a function, adapt for reuse in RHS/ranges processing
-                        if row_type == 'E':
-                            self.seq_row.update({row_seq: [row_name, 0., 0., row_type]})
-                        elif row_type == 'G':
-                            self.seq_row.update({row_seq: [row_name, 0., self.infty, row_type]})
-                        elif row_type == 'L':
-                            self.seq_row.update({row_seq: [row_name, self.infty, 0., row_type]})
-                        elif row_type == 'N':
-                            self.seq_row.update({row_seq: [row_name, self.infty, self.infty, row_type]})
-                        else:
-                            raise Exception(f'Unknown type {row_type} of row {row_name}.')
+                        # store row_{seq, name, type} and the default (to be changed in rhs/ranges) [lo_bnd, upp_bnd]
+                        self.row_att(row_seq, row_name, row_type, 'rows')
                     elif n_section == 3:  # rhs
                         if self.n_rhs == 0:     # first RHS record implies RHS/ranges id (might be empty)
                             if n_words in [3, 5]:
@@ -160,22 +153,72 @@ class LPdiag:
                                 n_req_wrd = [2, 4]
                                 pos_name = 0  # forst row-name in words[pos_name]
                         assert n_words in n_req_wrd, f'rhs line {n_line} has {n_words} words, expected {n_req_wrd}.'
+                        if id_rhs:      # check id of the RHS entry, if it was defined
+                            assert words[0] == self.rhs_id, f'RHS id {words[0]}, line {n_line} differ from' \
+                                                            f'expected: {self.rhs_id}.'
                         row_name = words[pos_name]
                         row_seq = self.row_name.get(row_name)
                         assert row_seq is not None, f'unknown RHS row-name {row_name} (line {n_line}).'
                         val = float(words[pos_name + 1])
                         assert type(val) == float, f'RHS value  {words[pos_name + 1]} (line {n_line}) is not a number.'
+                        attr = self.seq_row.get(row_seq)    # [row_name, lo_bnd, up_bnd, row_type]
+                        row_type = attr[3]
+                        self.row_att(row_seq, row_name, row_type, 'rhs', val)
                         self.n_rhs += 1
-                        # TODO: process RHS
+                        if n_words == n_req_wrd[1]:    # second pair of rhs defined
+                            row_name = words[pos_name + 2]
+                            row_seq = self.row_name.get(row_name)
+                            assert row_seq is not None, f'unknown RHS row-name {row_name} (line {n_line}).'
+                            val = float(words[pos_name + 3])
+                            assert type(val) == float, f'RHS value {words[pos_name + 1]} (line {n_line}) is not' \
+                                                       f' a number.'
+                            attr = self.seq_row.get(row_seq)  # [row_name, lo_bnd, up_bnd, row_type]
+                            row_type = attr[3]
+                            self.row_att(row_seq, row_name, row_type, 'rhs', val)
+                            self.n_rhs += 1
                     elif n_section == 4:  # ranges
+                        if self.n_rhs == 0:     # first RHS record implies RHS/ranges id (might be empty)
+                            if n_words in [3, 5]:
+                                id_range = True
+                                self.range_id = words[0]
+                                n_req_wrd = [3, 5]  # number of required words in a line (either 3 or 5)
+                                pos_name = 1    # first row-name in words[pos_name]
+                            else:
+                                id_range = False
+                                self.rhs_id = ''
+                                n_req_wrd = [2, 4]
+                                pos_name = 0  # forst row-name in words[pos_name]
+                        assert n_words in n_req_wrd, f'ranges line {n_line} has {n_words} words, expected {n_req_wrd}.'
+                        if id_range:      # check id of the ranges entry, if it was defined
+                            assert words[0] == self.range_id, f'Ranges id {words[0]}, line {n_line} differ from' \
+                                                            f' expected: {self.range_id}.'
+                        row_name = words[pos_name]
+                        row_seq = self.row_name.get(row_name)
+                        assert row_seq is not None, f'unknown range row-name {row_name} (line {n_line}).'
+                        val = float(words[pos_name + 1])
+                        assert type(val) == float, f'Range value {words[pos_name + 1]} (line {n_line}) is not a number.'
+                        attr = self.seq_row.get(row_seq)    # [row_name, lo_bnd, up_bnd, row_type]
+                        row_type = attr[3]
+                        self.row_att(row_seq, row_name, row_type, 'ranges', val)
                         self.n_ranges += 1
-                        # TODO: process Ranges
-                        pass
+                        if n_words == n_req_wrd[1]:    # second pair of ranges defined
+                            row_name = words[pos_name + 2]
+                            row_seq = self.row_name.get(row_name)
+                            assert row_seq is not None, f'unknown ranges row-name {row_name} (line {n_line}).'
+                            val = float(words[pos_name + 3])
+                            assert type(val) == float, f'Ranges value {words[pos_name + 1]} (line {n_line}) is not' \
+                                                       f'a number.'
+                            attr = self.seq_row.get(row_seq)  # [row_name, lo_bnd, up_bnd, row_type]
+                            row_type = attr[3]
+                            self.row_att(row_seq, row_name, row_type, 'ranges', val)
+                            self.n_ranges += 1
                     elif n_section == 5:    # bounds
                         self.n_bounds += 1
-                        # TODO: process Bounds
                         pass
-                    elif n_section == 6:  # end data
+                        # TODO: process Bounds
+                    elif n_section == 6:  # SOS section
+                        pass    # SOS section not processed
+                    elif n_section == 7:  # end data
                         raise Exception(f'Unexpected execution flow; needs to be explored.')
                     else:
                         raise Exception(f'Unknown section id {n_section}.')
@@ -184,8 +227,6 @@ class LPdiag:
                         pass    # problem name stored with processing the section head, no more info to be stored
                     elif n_section == 1:    # ROWS
                         # print(f'All read-in data of section {sections[n_section]} processed while read.')
-                        # print(f'row_name:\n{self.row_name}')
-                        # print(f'seq_row:\n{self.seq_row}')
                         pass
                     elif n_section == 2:  # COLUMNS
                         # create a df with the matrix coefficients
@@ -193,20 +234,19 @@ class LPdiag:
                         self.mat['abs_val'] = abs(self.mat['val'])  # add column with absolute values of coeff.
                         self.mat['log'] = np.log10(self.mat['abs_val']).astype(int)  # add col with int(log10(coeffs))
                         # print(f'matrix after initialization:\n {self.mat}')
-                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
                     elif n_section == 3:  # RHS
-                        print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
-                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                        pass    # values of RHS stored in row attributes while reading
                     elif n_section == 4:  # Ranges
-                        print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
-                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                        pass    # values of ranges stored in row attributes while reading
                     elif n_section == 5:  # Bounds
                         print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
-                        # raise Exception(f'Processing of section {sections[n_section]} not implemented yet.')
+                    elif n_section == 6:  # SOS
+                        print(f'Warning: values of optional section {sections[next_sect - 1]} not processed.')
                     else:
                         raise Exception(f'Should not come here, n_section = {n_section}.')
                     print(f'Next section found: {line} (line {n_line}).')
                     self.n_lines = n_line
+                    last_sect = next_sect
                     if req_sect[next_sect]:     # required section must be defined in the sequence
                         assert words[0] == sections[next_sect], f'expect section {sections[next_sect]} found: {line}.'
                         if words[0] == sections[next_sect]:
@@ -231,12 +271,76 @@ class LPdiag:
                             next_sect = n_section + 1
                         continue
 
+        # check, if the last required section ('ENDATA') was defined
+        assert last_sect == 6, f'The "ENDATA" section is not declared; last section_id = {last_sect}.'
+
         # check, if there was at least one N row (the first N row assumed to be the objective)
         assert self.gf_seq != -1, f'objective (goal function) row is undefined.'
 
         # Finish the MPS processing with the summary of its size
         print(f'\nFinished processing {self.n_lines} lines of the MPS file {self.fname}.')
         print(f'LP has: {len(self.row_name)} rows, {len(self.col_name)} cols, {len(self.mat)} non-zeros.')
+
+    def row_att(self, row_seq, row_name, row_type, sec_name, val=0.):
+        """Process values defined in ROWS, RHS and RANGES sections and store/update the corresponding row attributes.
+
+        While processing the ROWS section the row attributes are initialized to the default (for the corresponding
+        row type) values.
+        The attributes are updated for optionally defined values in the (also optional) RHS and RANGES sections.
+        The interpretation of the MPS-format (in particular of values in the RANGES section) follows the original
+        MPS standard, see e.g., "Advanced Linear Programming," by Bruce A. Murtagh. or the standard summary
+        at https://lpsolve.sourceforge.net/5.5/mps-format.htm .
+
+        Attributes
+        ----------
+        row_seq: int
+            position of row in dictionaries and the matrix df
+        row_name: str
+            row name (defined in the ROWS section)
+        row_type: str
+            row type (defined in the ROWS section)
+        sec_name: str
+            identifies the MPS section: either 'rows' (for initialization) or 'rhs' or 'ranges' (for updates)
+        val: float
+            value of the row attribute defining either lo_bnd or up_bnd of the row (the type checked while
+            processing the MPS section
+
+        """
+
+        type2bnd = {'E': [0., 0.], 'G': [0., self.infty], 'L': [self.infty, 0.], 'N': [self.infty, self.infty]}
+        assert row_seq == self.row_name.get(row_name), f'{row_seq=} should be equal to: {self.row_name.get(row_name)}.'
+        assert row_type in type2bnd, f'undefined row type {row_type=} for {row_name=}.'
+        if sec_name == 'rows':   # initialize row attributes (used in ROW section)
+            low_upp = type2bnd.get(row_type)
+            self.seq_row.update({row_seq: [row_name, low_upp[0], low_upp[1], row_type]})
+            # print(f'attributes of row {row_name} initialized in section {sec_name} to {low_upp}.')
+            # print(f'attributes of row {row_name} initialized in section {sec_name} to {self.seq_row.get(row_seq)}.')
+        elif sec_name in ['rhs', 'ranges']:   # update row attributes (used in RHS and ranges sections)
+            if row_type == 'N':
+                print(f'{sec_name} value {val} ignored for neutral row {row_name}.')
+                return
+            attr = self.seq_row.get(row_seq)    # [row_name, lo_bnd, up_bnd, row_type]
+            if sec_name == 'rhs':   # process the RHS value
+                if row_type == 'G':     # update lo_bnd
+                    attr[1] = val
+                elif row_type == 'L':     # update up_bnd
+                    attr[2] = val
+                elif row_type == 'E':     # update both bounds
+                    attr[1] = attr[2] = val
+            else:   # process the ranges value
+                if row_type == 'G':     # update up_bnd
+                    attr[2] = attr[1] + abs(val)
+                elif row_type == 'L':     # update lo_bnd
+                    attr[1] = attr[2] - abs(val)
+                elif row_type == 'E':     # update both bounds
+                    if val > 0:
+                        attr[2] = attr[1] + val
+                    else:
+                        attr[1] = attr[2] - abs(val)
+            self.seq_row.update({row_seq: attr})
+            # print(f'attributes of row {row_name} updated in section {sec_name} to {attr}.')
+        else:   # update row attributes (used in RHS and ranges sections)
+            raise Exception(f'row_att() should not be called for {sec_name=}.')
 
     def stat(self, lo_tail=-7, up_tail=6):
         """Basic statistics of the matrix coefficients.
@@ -322,6 +426,8 @@ class LPdiag:
             print(f'\tCol {col_name} has {df_col["log"].count()} coeffs of magnitudes in [{df_col["log"].min()},'
                   f'{df_col["log"].max()}]')
             # print(f'matrix elements in the same row:\n{df_row}')
+            # TODO: add info on lo/up-bounds for rows of outlayers
+            # TODO: add info on lo/up-bounds for cols of outlayers
 
     def ent_inf(self, mat_row, by_row=True) -> typing.Tuple[int, str]:
         """Return info on the entity (either row or col) defining the selected matrix coefficient.

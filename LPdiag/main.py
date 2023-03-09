@@ -25,6 +25,7 @@ if __name__ == '__main__':
     os.chdir(wrk_dir)
 
     # small MPSs, for testing the code, posted to Data/mps_tst dir
+    # err_tst  - small MPS with various errors for testing the diagnostics
     # aez  - agro-ecological zones, medium size; two matrix elems in a row
     # diet - classical small LP
     # jg_korh - tiny testing problem
@@ -36,14 +37,17 @@ if __name__ == '__main__':
     # of_baselin  - second MPS from Oliver, posted on Feb 16, 2023 at 12:13 as: baseline_barrier.mps
 
     data_dir = 'Data/mps_tst/'
-    prob_id = 'aez'
-    # prob_id = 'diet'
+    # prob_id = 'err_tst'
+    # prob_id = 'aez'
+    prob_id = 'diet'
+    # prob_id = 'jg_korh'
     # prob_id = 'lotfi'
     # data_dir = 'Data/mps/'
     # prob_id = 'of_led1'
     # prob_id = 'of_baselin'
     fn_mps = data_dir + prob_id
-    repdir = 'Rep_tst/'    # subdirectory for reports
+    # repdir = 'Rep_shared/'      # subdirectory for shared reports (included in the git-repo)
+    repdir = 'Rep_tst/'           # subdirectory for test-reports (NOT included in the git-repo)
 
     redir_stdo = False      # redirect stdout to the file in repdir
     default_stdout = sys.stdout
