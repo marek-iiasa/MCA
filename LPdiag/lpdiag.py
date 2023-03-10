@@ -8,6 +8,7 @@ import typing
 import os
 import numpy as np
 import pandas as pd
+import math
 # from datetime import datetime as dt
 # from datetime import timedelta as td
 # import matplotlib.pyplot as plt
@@ -246,10 +247,10 @@ class LPdiag:
                         raise Exception(f'Should not come here, n_section = {n_section}.')
                     print(f'Next section found: {line} (line {n_line}).')
                     self.n_lines = n_line
-                    last_sect = next_sect
                     if req_sect[next_sect]:     # required section must be defined in the sequence
                         assert words[0] == sections[next_sect], f'expect section {sections[next_sect]} found: {line}.'
                         if words[0] == sections[next_sect]:
+                            last_sect = n_section  # store id of the last section found and processed
                             n_section = next_sect
                             next_sect = n_section + 1
                             if n_section == 0:  # the only section declaration with the content
@@ -260,19 +261,21 @@ class LPdiag:
                         else:
                             raise Exception(f'Required MPS section {sections[n_section]} undefined or misplaced.')
                     else:   # optional section expected
-                        if line == sections[next_sect]:     # found
+                        if line == sections[next_sect]:     # the expected (optional) section found
                             n_section = next_sect
                             next_sect = n_section + 1
                         else:       # expected section not found; process the section found
                             try:
+                                # the expected section not used, maybe it is another section
                                 n_section = sections.index(line)
                             except ValueError:
                                 raise Exception(f'Unknown section id :{line} (line number = {n_line}).')
                             next_sect = n_section + 1
+                        last_sect = n_section  # store id of the last section found (not processed yet)
                         continue
 
         # check, if the last required section ('ENDATA') was defined
-        assert last_sect == 6, f'The "ENDATA" section is not declared; last section_id = {last_sect}.'
+        assert last_sect == 7, f'The "ENDATA" section is not declared; last section_id = {last_sect}.'
 
         # check, if there was at least one N row (the first N row assumed to be the objective)
         assert self.gf_seq != -1, f'objective (goal function) row is undefined.'
@@ -304,7 +307,6 @@ class LPdiag:
         val: float
             value of the row attribute defining either lo_bnd or up_bnd of the row (the type checked while
             processing the MPS section
-
         """
 
         type2bnd = {'E': [0., 0.], 'G': [0., self.infty], 'L': [self.infty, 0.], 'N': [self.infty, self.infty]}
@@ -391,9 +393,9 @@ class LPdiag:
                 print(f'Number of log10(values) == {val}: {self.mat.loc[self.mat["log"] == val]["log"].count()}')
 
     def out_loc(self, small=True, thresh=-7, max_rec=500):
-        """Locations of outlayers, i.e., elements having small/large coeff values.
+        """Locations of outliers, i.e., elements having small/large coeff values.
 
-        Locations of outlayers (in the term of the matrix coefficient values).
+        Locations of outliers (in the term of the matrix coefficient values).
         The provided ranges of values in the corresponding row/col indicate potential of the simple scaling.
 
         Attributes
@@ -406,13 +408,13 @@ class LPdiag:
             Maximum number of processed coefficients
         """
 
-        if small:
+        if small:   # small-value outliers
             df = self.mat.loc[self.mat['log'] <= thresh]
-            print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) <= {thresh}).')
-        else:
+            print(f'\nLocations of {df["log"].count()} outliers (coeff. with values of log10(values) <= {thresh}).')
+        else:       # large-value outliers
             df = self.mat.loc[self.mat['log'] >= thresh]
-            print(f'\nLocations of {df["log"].count()} outlayers (coeff. with values of log10(values) >= {thresh}).')
-        df1 = df.sort_values('row')
+            print(f'\nLocations of {df["log"].count()} outliers (coeff. with values of log10(values) >= {thresh}).')
+        df1 = df.sort_values('row')     # sort the df with outliers ascending seq_id of rows
         df1.reset_index()
         for n_rows, (indx, row) in enumerate(df1.iterrows()):
             assert n_rows < max_rec, f'To process all requested coeffs modify the safety limit assertion.'
@@ -420,14 +422,12 @@ class LPdiag:
             col_seq, col_name = self.ent_inf(row, False)    # col seq_id and name of the current coeff.
             print(f'Coeff. ({row_seq}, {col_seq}): val = {row["val"]:.4e}, log(val) = {row["log"]:n}')
             df_row = df1.loc[df1['row'] == row_seq]  # df with elements in the same row
-            print(f'\tRow {row_name} has {df_row["log"].count()} coeffs of magnitudes in [{df_row["log"].min()},'
-                  f'{df_row["log"].max()}]')
-            df_col = df1.loc[df1['col'] == col_seq]  # df with elements in the same col
-            print(f'\tCol {col_name} has {df_col["log"].count()} coeffs of magnitudes in [{df_col["log"].min()},'
-                  f'{df_col["log"].max()}]')
             # print(f'matrix elements in the same row:\n{df_row}')
-            # TODO: add info on lo/up-bounds for rows of outlayers
-            # TODO: add info on lo/up-bounds for cols of outlayers
+            print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row["log"].count()}'
+                  f'coeffs of magnitudes in [{df_row["log"].min()}, {df_row["log"].max()}]')
+            df_col = df1.loc[df1['col'] == col_seq]  # df with elements in the same col
+            print(f'\tCol {col_name} {self.ent_range(col_seq, False)} has {df_col["log"].count()}'
+                  f'coeffs of magnitudes in [{df_col["log"].min()}, {df_col["log"].max()}]')
 
     def ent_inf(self, mat_row, by_row=True) -> typing.Tuple[int, str]:
         """Return info on the entity (either row or col) defining the selected matrix coefficient.
@@ -443,6 +443,7 @@ class LPdiag:
         by_row: bool
             True/False for returning the seq_id and name of the corresponding row/col
         """
+
         if by_row:
             # if seq_row {} not stored, then:  names = [k for k, idx in self.row_name.items() if idx == ent_seq]
             ent_seq = int(mat_row['row'])
@@ -451,6 +452,42 @@ class LPdiag:
             ent_seq = int(mat_row['col'])
             name = self.seq_col.get(ent_seq)[0]
         return ent_seq, name
+
+    def ent_range(self, seq_id, by_row=True) -> str:
+        """Return formatted string representing ranges of feasible values of either a row or a column.
+
+        The returned values of ranges are either 'none' (for plus/minus infinity) or int(log10(abs(val))) for
+        other values. Small values, defined as abs(value) < 1e-10, are represented by 0.
+
+        Attributes
+        ----------
+        seq_id: int
+            sequence number of either row or col.
+        by_row: bool
+            True/False for returning the seq_id and name of the corresponding row/col.
+        """
+
+        if by_row:
+            attr = self.seq_row.get(seq_id)    # [row_name, lo_bnd, up_bnd, row_type]
+            pass
+        else:
+            attr = self.seq_col.get(seq_id)    # [col_name, lo_bnd, up_bnd]
+            pass
+        s = []  # strings representing lo/up-bounds
+        for pos in [0, 1]:
+            val = attr[pos + 1]     # 0-th element is the name
+            if val == self.infty:   # used for both infinites (positive and negative)
+                s.append(self.infty)
+            else:
+                if type(val) == int:
+                    val = float(val)
+                if abs(val) < 1e-10:
+                    s.append('0')   # same string for int and float zeros
+                else:
+                    val = int(math.log10(abs(val)))
+                    s.append(f'{val}')      # small integer value, no formatting needed
+        ret = '[' + s[0] + ', ' + s[1] + ']'
+        return ret      # the range is formatted as: '[lo_bnd, up_bnd]'
 
     def plot_hist(self):
         """Plot histograms."""
