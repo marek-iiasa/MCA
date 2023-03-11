@@ -63,6 +63,9 @@ class LPdiag:
         sections = ['NAME', 'ROWS', 'COLUMNS', 'RHS', 'RANGES', 'BOUNDS', 'SOS', 'ENDATA']
         req_sect = [True, True, True, False, False, False, False, True]    # required/optional MPS sections
         row_types = ['N', 'E', 'G', 'L']  # types of rows
+        bnd_type1 = {'LO': 1, 'UP': 2, 'FX': 3}  # types of bounds requiring value
+        bnd_type2 = {'MI': 1, 'PL': 2, 'FR': 3}  # types of bounds not requiring value
+        bnd_type3 = {'BV': 0, 'LI': 0, 'UI': 0, 'SC': 0}  # types of bounds legal for int-type vars, not processed
 
         # tmp space for reading sections of the MPS
         seq_row = []       # row seq_no of the matrix coef.
@@ -100,7 +103,7 @@ class LPdiag:
                             assert col_name not in self.col_name, f'duplicated column name: {col_name} (line {n_line})'
                             col_seq = len(self.col_name)
                             self.col_name.update({col_name: col_seq})
-                            self.seq_col.update({col_seq: [col_name, 0., self.infty, words[0]]})
+                            self.seq_col.update({col_seq: [col_name, 0., self.infty]})
                             col_curr = col_name
                         row_name = words[1]
                         row_seq = self.row_name.get(row_name)
@@ -143,6 +146,7 @@ class LPdiag:
                         self.row_att(row_seq, row_name, row_type, 'rows')
                     elif n_section == 3:  # rhs
                         if self.n_rhs == 0:     # first RHS record implies RHS/ranges id (might be empty)
+                            # print(f'first rhs line: {n_line}, len {len(line)}: "{line}"')
                             if n_words in [3, 5]:
                                 id_rhs = True
                                 self.rhs_id = words[0]
@@ -152,7 +156,7 @@ class LPdiag:
                                 id_rhs = False
                                 self.rhs_id = ''
                                 n_req_wrd = [2, 4]
-                                pos_name = 0  # forst row-name in words[pos_name]
+                                pos_name = 0  # first row-name in words[pos_name]
                         assert n_words in n_req_wrd, f'rhs line {n_line} has {n_words} words, expected {n_req_wrd}.'
                         if id_rhs:      # check id of the RHS entry, if it was defined
                             assert words[0] == self.rhs_id, f'RHS id {words[0]}, line {n_line} differ from' \
@@ -188,9 +192,9 @@ class LPdiag:
                                 id_range = False
                                 self.rhs_id = ''
                                 n_req_wrd = [2, 4]
-                                pos_name = 0  # forst row-name in words[pos_name]
+                                pos_name = 0  # first row-name in words[pos_name]
                         assert n_words in n_req_wrd, f'ranges line {n_line} has {n_words} words, expected {n_req_wrd}.'
-                        if id_range:      # check id of the ranges entry, if it was defined
+                        if id_range:      # check id of the ranges' entry, if it was defined
                             assert words[0] == self.range_id, f'Ranges id {words[0]}, line {n_line} differ from' \
                                                             f' expected: {self.range_id}.'
                         row_name = words[pos_name]
@@ -214,9 +218,50 @@ class LPdiag:
                             self.row_att(row_seq, row_name, row_type, 'ranges', val)
                             self.n_ranges += 1
                     elif n_section == 5:    # bounds
+                        if self.n_bounds == 0:     # first Bounds record implies bounds id (might be empty)
+                            # print(f'first bound line: {n_line}, len {len(line)}: "{line}"')
+                            if n_words == 4 or (n_words == 3 and words[0] in ['FR', 'MI', 'PL']):
+                                id_bnd = True
+                                self.bnd_id = words[1]
+                                n_req_wrd = [4, 3]  # number of required words in a line
+                                pos_name = 2    # col-name in words[pos_name]
+                            else:
+                                id_bnd = False
+                                self.bnd_id = ''
+                                n_req_wrd = [3, 2]
+                                pos_name = 1  # col-name in words[pos_name]
+                            # print(f'first bound: {id_bnd=}, bnd_id= {self.bnd_id}: {n_req_wrd = }')
+                        assert n_words in n_req_wrd, f'bounds line {n_line} has {n_words} words, expected {n_req_wrd}.'
+                        if id_bnd:      # check id of the BOUNDS line, if it was defined
+                            assert words[1] == self.bnd_id, f'BOUNDS id {words[1]}, line {n_line} differ from ' \
+                                                            f'expected: {self.bnd_id}\n"{line=}".'
+                        col_name = words[pos_name]
+                        col_seq = self.col_name.get(col_name)
+                        assert col_seq is not None, f'unknown BOUNDS col-name {col_name} (line {n_line}).'
+                        attr = self.seq_col.get(col_seq)    # [col_name, lo_bnd, up_bnd]
+
+                        typ = words[0]
+                        if typ in bnd_type1:    # requires a value
+                            val = float(words[pos_name + 1])
+                            assert type(val) == float, f'BOUND value {words[pos_name + 1]} (line {n_line})' \
+                                                       f'is not a number.'
+                            at_pos = bnd_type1.get(typ)
+                            if at_pos == 3:     # set both bounds
+                                attr[1] = attr[2] = val
+                            else:
+                                attr[at_pos] = val
+                        elif typ in bnd_type2:
+                            at_pos = bnd_type2.get(typ)
+                            if at_pos == 3:     # set both bounds
+                                attr[1] = attr[2] = self.infty
+                            else:
+                                attr[at_pos] = self.infty
+                        elif typ in bnd_type3:
+                            raise Exception(f'Bound type {typ} of integer var. (line {n_line}) not processed yet.')
+                        else:
+                            raise Exception(f'Unknown bound type {typ} (line {n_line}).')
+                        self.seq_col.update({col_seq: attr})
                         self.n_bounds += 1
-                        pass
-                        # TODO: process Bounds
                     elif n_section == 6:  # SOS section
                         pass    # SOS section not processed
                     elif n_section == 7:  # end data
@@ -240,7 +285,7 @@ class LPdiag:
                     elif n_section == 4:  # Ranges
                         pass    # values of ranges stored in row attributes while reading
                     elif n_section == 5:  # Bounds
-                        print(f'Warning: values of section {sections[next_sect - 1]} not stored yet.')
+                        pass
                     elif n_section == 6:  # SOS
                         print(f'Warning: values of optional section {sections[next_sect - 1]} not processed.')
                     else:
@@ -315,7 +360,6 @@ class LPdiag:
         if sec_name == 'rows':   # initialize row attributes (used in ROW section)
             low_upp = type2bnd.get(row_type)
             self.seq_row.update({row_seq: [row_name, low_upp[0], low_upp[1], row_type]})
-            # print(f'attributes of row {row_name} initialized in section {sec_name} to {low_upp}.')
             # print(f'attributes of row {row_name} initialized in section {sec_name} to {self.seq_row.get(row_seq)}.')
         elif sec_name in ['rhs', 'ranges']:   # update row attributes (used in RHS and ranges sections)
             if row_type == 'N':
@@ -423,11 +467,11 @@ class LPdiag:
             print(f'Coeff. ({row_seq}, {col_seq}): val = {row["val"]:.4e}, log(val) = {row["log"]:n}')
             df_row = df1.loc[df1['row'] == row_seq]  # df with elements in the same row
             # print(f'matrix elements in the same row:\n{df_row}')
-            print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row["log"].count()}'
-                  f'coeffs of magnitudes in [{df_row["log"].min()}, {df_row["log"].max()}]')
+            print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row["log"].count()} '
+                  f'coeff. of magnitudes in [{df_row["log"].min()}, {df_row["log"].max()}]')
             df_col = df1.loc[df1['col'] == col_seq]  # df with elements in the same col
-            print(f'\tCol {col_name} {self.ent_range(col_seq, False)} has {df_col["log"].count()}'
-                  f'coeffs of magnitudes in [{df_col["log"].min()}, {df_col["log"].max()}]')
+            print(f'\tCol {col_name} {self.ent_range(col_seq, False)} has {df_col["log"].count()} '
+                  f'coeff. of magnitudes in [{df_col["log"].min()}, {df_col["log"].max()}]')
 
     def ent_inf(self, mat_row, by_row=True) -> typing.Tuple[int, str]:
         """Return info on the entity (either row or col) defining the selected matrix coefficient.
