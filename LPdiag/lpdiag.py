@@ -16,7 +16,7 @@ import math
 # from matplotlib import colors
 # from matplotlib.ticker import LinearLocator    # needed for ax.set_major_locator
 # import seaborn as sns
-# sns.set()   # settings for seaborn plotting style
+# # sns.set()   # settings for seaborn plotting style
 
 
 class LPdiag:
@@ -63,9 +63,10 @@ class LPdiag:
         sections = ['NAME', 'ROWS', 'COLUMNS', 'RHS', 'RANGES', 'BOUNDS', 'SOS', 'ENDATA']
         req_sect = [True, True, True, False, False, False, False, True]    # required/optional MPS sections
         row_types = ['N', 'E', 'G', 'L']  # types of rows
+        # items of the below dictionaries indicate bounds to be modified: 1 - low, 2 - upper, 3 - both
         bnd_type1 = {'LO': 1, 'UP': 2, 'FX': 3}  # types of bounds requiring value
         bnd_type2 = {'MI': 1, 'PL': 2, 'FR': 3}  # types of bounds not requiring value
-        bnd_type3 = {'BV': 0, 'LI': 0, 'UI': 0, 'SC': 0}  # types of bounds legal for int-type vars, not processed
+        bnd_type3 = {'BV': 0, 'LI': 0, 'UI': 0, 'SC': 0}  # types of bounds legal for int-type vars, not processed yet
 
         # tmp space for reading sections of the MPS
         seq_row = []       # row seq_no of the matrix coef.
@@ -223,7 +224,7 @@ class LPdiag:
                             if n_words == 4 or (n_words == 3 and words[0] in ['FR', 'MI', 'PL']):
                                 id_bnd = True
                                 self.bnd_id = words[1]
-                                n_req_wrd = [4, 3]  # number of required words in a line
+                                n_req_wrd = [4, 3]  # number of required words in a line (with/without) required value
                                 pos_name = 2    # col-name in words[pos_name]
                             else:
                                 id_bnd = False
@@ -241,7 +242,7 @@ class LPdiag:
                         attr = self.seq_col.get(col_seq)    # [col_name, lo_bnd, up_bnd]
 
                         typ = words[0]
-                        if typ in bnd_type1:    # requires a value
+                        if typ in bnd_type1:    # bound-types that require a value
                             val = float(words[pos_name + 1])
                             assert type(val) == float, f'BOUND value {words[pos_name + 1]} (line {n_line})' \
                                                        f'is not a number.'
@@ -250,7 +251,7 @@ class LPdiag:
                                 attr[1] = attr[2] = val
                             else:
                                 attr[at_pos] = val
-                        elif typ in bnd_type2:
+                        elif typ in bnd_type2:  # value not needed; therefore it is neither checked nor processed
                             at_pos = bnd_type2.get(typ)
                             if at_pos == 3:     # set both bounds
                                 attr[1] = attr[2] = self.infty
@@ -260,7 +261,7 @@ class LPdiag:
                             raise Exception(f'Bound type {typ} of integer var. (line {n_line}) not processed yet.')
                         else:
                             raise Exception(f'Unknown bound type {typ} (line {n_line}).')
-                        self.seq_col.update({col_seq: attr})
+                        self.seq_col.update({col_seq: attr})    # store the updated col-attributes
                         self.n_bounds += 1
                     elif n_section == 6:  # SOS section
                         pass    # SOS section not processed

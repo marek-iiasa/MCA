@@ -16,7 +16,7 @@ from datetime import datetime as dt
 if __name__ == '__main__':
     """Driver of the LP diagnostics script.
     
-    Defines the working space, then constrols the flow by executing the desired functions of LPdiag class.
+    Defines the working space, then controls the flow by executing the desired functions of LPdiag class.
     """
 
     tstart = dt.now()
@@ -65,7 +65,9 @@ if __name__ == '__main__':
     lp.stat(lo_tail=-7, up_tail=5)   # statistics of the matrix coefficients, incl. distribution tails
     # lp.stat(lo_tail=0, up_tail=0)  # to get numbers of coeffs for each magnitute specify equal/overlapping tails
     lp.out_loc(small=True, thresh=-7, max_rec=100)  # locations of small-value outlayers
-    # lp.out_loc(small=False, thresh=6, max_rec=500)  # locations of large-value outlayers
+    lp.out_loc(small=False, thresh=6, max_rec=500)  # locations of large-value outlayers
+    # lp.out_loc(small=True, thresh=-1, max_rec=100)  # testing (lotfi) small-value outlayers
+    # lp.out_loc(small=False, thresh=2, max_rec=500)  # testing (lotfi) large-value outlayers
 
     tend = dt.now()
     time_diff = tend - tstart
@@ -79,3 +81,4 @@ if __name__ == '__main__':
 
     # TODO: plots of distributions of coeffs
     # TODO: naive scaling
+    # TODO: conform(?) to the MPS-standard: reject numbers of abs(val): greater than 10^{10} or smaller than 10^{-10}
