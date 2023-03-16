@@ -461,16 +461,32 @@ class LPdiag:
             print(f'\nLocations of {df["log"].count()} outliers (coeff. with values of log10(values) >= {thresh}).')
         df1 = df.sort_values('row')     # sort the df with outliers ascending seq_id of rows
         df1.reset_index()
+        col_out = []    # col_seq of outliers' cols
         for n_rows, (indx, row) in enumerate(df1.iterrows()):
             assert n_rows < max_rec, f'To process all requested coeffs modify the safety limit assertion.'
             row_seq, row_name = self.ent_inf(row, True)     # row seq_id and name of the current coeff.
             col_seq, col_name = self.ent_inf(row, False)    # col seq_id and name of the current coeff.
+            if col_seq not in col_out:
+                col_out.append(col_seq)
+            else:
+                print(f'{col_seq = } already in another outlier row.')
             print(f'Coeff. ({row_seq}, {col_seq}): val = {row["val"]:.4e}, log(val) = {row["log"]:n}')
-            df_row = df1.loc[df1['row'] == row_seq]  # df with elements in the same row
+            df_row_out = df1.loc[df1['row'] == row_seq]  # df with only outlier elements
+            df_row_all = self.mat.loc[self.mat['row'] == row_seq]  # df with all elements
             # print(f'matrix elements in the same row:\n{df_row}')
-            print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row["log"].count()} '
-                  f'coeff. of magnitudes in [{df_row["log"].min()}, {df_row["log"].max()}]')
-            df_col = df1.loc[df1['col'] == col_seq]  # df with elements in the same col
+            print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row_out["log"].count()} '
+                  f'outlier-coeff. of magnitudes in [{df_row_out["log"].min()}, {df_row_out["log"].max()}]')
+            print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row_all["log"].count()} '
+                  f'coeff. of magnitudes in [{df_row_all["log"].min()}, {df_row_all["log"].max()}]')
+            # a column may include more than 1 outlier; therefore columns with outliers reported below
+            # df_col = df1.loc[df1['col'] == col_seq]  # df with outliers in the same col
+            # print(f'\tCol {col_name} {self.ent_range(col_seq, False)} has {df_col["log"].count()} '
+            #       f'outlier coeff. of magnitudes in [{df_col["log"].min()}, {df_col["log"].max()}]')
+        print(f'\n{len(col_out)} columns having outlier coefficients:')
+        col_out.sort()
+        for col_seq in col_out:
+            col_name = self.seq_col.get(col_seq)[0]
+            df_col = self.mat.loc[self.mat['col'] == col_seq]  # df with elements in the same col
             print(f'\tCol {col_name} {self.ent_range(col_seq, False)} has {df_col["log"].count()} '
                   f'coeff. of magnitudes in [{df_col["log"].min()}, {df_col["log"].max()}]')
 
