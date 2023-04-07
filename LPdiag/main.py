@@ -36,15 +36,15 @@ if __name__ == '__main__':
     # of_led1     - posted by Oliver in /t/fricko... on Feb 16, 2023 at 10:39 as: OFR_test_led_barrier.mps
     # of_baselin  - second MPS from Oliver, posted on Feb 16, 2023 at 12:13 as: baseline_barrier.mps
 
-    data_dir = 'Data/mps_tst/'
+    # data_dir = 'Data/mps_tst/'
     # prob_id = 'err_tst'
     # prob_id = 'aez'
-    prob_id = 'diet'
+    # prob_id = 'diet'
     # prob_id = 'jg_korh'
     # prob_id = 'lotfi'
-    # data_dir = 'Data/mps/'
+    data_dir = 'Data/mps/'
     # prob_id = 'of_led1'
-    # prob_id = 'of_baselin'
+    prob_id = 'of_baselin'
     fn_mps = data_dir + prob_id
     # repdir = 'Rep_shared/'      # subdirectory for shared reports (included in the git-repo)
     repdir = 'Rep_tst/'           # subdirectory for test-reports (NOT included in the git-repo)
@@ -74,10 +74,14 @@ if __name__ == '__main__':
     print('\nStarted at: ', str(tstart))
     print('Finished at:', str(tend))
     print(f'Wall-clock execution time: {time_diff.seconds} sec.')
-    if redir_stdo:
+
+    if redir_stdo:  # close the redirected output
         f_out.close()
         sys.stdout = default_stdout
-        print(f'Stdout stored in {fn_out}. Now writing to the console.')
+        print(f'\nRedirected stdout stored in {fn_out}. Now writing to the console.')
+        print('\nStarted at: ', str(tstart))
+        print('Finished at:', str(tend))
+        print(f'Wall-clock execution time: {time_diff.seconds} sec.')
 
     # TODO: plots of distributions of coeffs
     # TODO: naive scaling
