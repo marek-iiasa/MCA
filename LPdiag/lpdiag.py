@@ -414,7 +414,7 @@ class LPdiag:
         df = self.mat.loc[self.mat['row'] == self.gf_seq]['val']   # df with values of the GF coefficients.
         print(f'\nThe GF (objective) row named "{self.seq_row.get(self.gf_seq)[0]}" has {len(df)} elements.')
         print(f'Distribution of the GF (objective) values:\n{df.describe()}')
-        print(f'Numbers of defined: RHS = {self.n_rhs}, ranges = {self.n_ranges}, bounds = {self.n_bounds}.')
+        print(f'\nNumbers of defined: RHS = {self.n_rhs}, ranges = {self.n_ranges}, bounds = {self.n_bounds}.')
 
         if lo_tail > up_tail:
             print(f'Overlapping distribution tails ({lo_tail}, {up_tail}) reset to 0.')
@@ -453,12 +453,14 @@ class LPdiag:
             Maximum number of processed coefficients
         """
 
-        if small:   # small-value outliers
+        if small:   # sub-matrix composed of only small-value outliers
             df = self.mat.loc[self.mat['log'] <= thresh]
-            print(f'\nLocations of {df["log"].count()} outliers (coeff. with values of log10(values) <= {thresh}).')
+            print(f'\nRow-wise locations of {df["log"].count()} outliers (coeff. with values of log10(values) <= '
+                  f'{thresh}).')
         else:       # large-value outliers
             df = self.mat.loc[self.mat['log'] >= thresh]
-            print(f'\nLocations of {df["log"].count()} outliers (coeff. with values of log10(values) >= {thresh}).')
+            print(f'\nRow-wise locations of {df["log"].count()} outliers (coeff. with values of log10(values) >= '
+                  f'{thresh}).')
         df1 = df.sort_values('row')     # sort the df with outliers ascending seq_id of rows
         df1.reset_index()
         col_out = []    # col_seq of outliers' cols
@@ -477,12 +479,12 @@ class LPdiag:
             print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row_out["log"].count()} '
                   f'outlier-coeff. of magnitudes in [{df_row_out["log"].min()}, {df_row_out["log"].max()}]')
             print(f'\tRow {row_name} {self.ent_range(row_seq, True)} has {df_row_all["log"].count()} '
-                  f'coeff. of magnitudes in [{df_row_all["log"].min()}, {df_row_all["log"].max()}]')
+                  f'(all)-coeff. of magnitudes in [{df_row_all["log"].min()}, {df_row_all["log"].max()}]')
             # a column may include more than 1 outlier; therefore columns with outliers reported below
             # df_col = df1.loc[df1['col'] == col_seq]  # df with outliers in the same col
             # print(f'\tCol {col_name} {self.ent_range(col_seq, False)} has {df_col["log"].count()} '
             #       f'outlier coeff. of magnitudes in [{df_col["log"].min()}, {df_col["log"].max()}]')
-        print(f'\n{len(col_out)} columns having outlier coefficients:')
+        print(f'\nColumn-wise locations of outlier coefficients in {len(col_out)} columns:')
         col_out.sort()
         for col_seq in col_out:
             col_name = self.seq_col.get(col_seq)[0]
