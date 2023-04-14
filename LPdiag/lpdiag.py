@@ -9,6 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 import math
+from collections import Counter
 # from datetime import datetime as dt
 # from datetime import timedelta as td
 # import matplotlib.pyplot as plt
@@ -409,6 +410,11 @@ class LPdiag:
         min_logv = self.mat["log"].min()
         max_logv = self.mat["log"].max()
         print(f'log10 values: min = {min_logv}, max = {max_logv}.')
+        magn_dist = Counter(self.mat['log'])
+        magn_dist = dict(sorted(magn_dist.items()))
+        print(f'\nDistribution of int(log10) values sorted by magnitudes of values:')
+        for magn in magn_dist:
+            print(f'{magn}: {magn_dist[magn]}')
 
         # info on the GF row, RHS, ranges, bounds
         df = self.mat.loc[self.mat['row'] == self.gf_seq]['val']   # df with values of the GF coefficients.
@@ -553,4 +559,5 @@ class LPdiag:
         return ret      # the range is formatted as: '[lo_bnd, up_bnd]'
 
     def plot_hist(self):
+        # TODO: might not be needed; therefore the implementation postponed
         """Plot histograms."""
