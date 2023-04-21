@@ -10,7 +10,7 @@ The MCMA and MCAA applications are available for the researchers of the collabor
 
 This repository contains files for exclusive research and/or education use by scientists and students working at or collaborating with the above mentioned institutions, including participants of the IIASA YSSP (Young Scientist Summer Program). Currently the repository is composed of only two directories:
 * *reading*: contains recommended reading on the MCA and the closely related OR (Operations Research) topics.
-* *LPdiag*: temporary space for development of the Python code for diagnosis of the LP matrices.
+* *LPdiag*: former space for development of the Python code for the LP matrices diagnostics; now it contains info on the current code location.
 
 Each directory contains the corresponding short description of its content. More files will be added to the repository as needed.
 
